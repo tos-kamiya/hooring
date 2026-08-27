@@ -89,7 +89,9 @@ class Scene:
                     self._last_hit[0] = self._t + hit
                     self._intro_at = None
 
+        events.sort(key=lambda item: item[0])
         for offset, index, strength in events:
+            self._retrigger(out, offset)
             audio = synthesize_strike(
                 self.chimes[index],
                 strength,
@@ -146,6 +148,23 @@ class Scene:
                 else:
                     self._pending.append((bounce_abs, index, bounce_strength))
         return events
+
+    def _retrigger(self, out: np.ndarray, offset: int) -> None:
+        """Cut the previous ring so only one furin speaks at a time."""
+        fade_n = max(1, int(self.spec.sample_rate * 0.008))
+        if offset > 0:
+            n_fade = min(fade_n, offset)
+            ramp = np.linspace(1.0, 0.0, n_fade, dtype=np.float64)[:, None]
+            out[offset - n_fade : offset] *= ramp
+            out[offset:] = 0.0
+        else:
+            n_fade = min(fade_n, out.shape[0])
+            if n_fade > 0:
+                ramp = np.linspace(1.0, 0.0, n_fade, dtype=np.float64)[:, None]
+                out[:n_fade] *= ramp
+                if n_fade < out.shape[0]:
+                    out[n_fade:] = 0.0
+        self._tail = np.zeros((0, out.shape[1]), dtype=np.float64)
 
     def _mix(self, out: np.ndarray, audio: np.ndarray, offset: int) -> None:
         n = out.shape[0]

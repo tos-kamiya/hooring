@@ -7,7 +7,7 @@ import numpy as np
 
 from hooring import render
 from hooring.scene import Scene, SceneSpec
-from hooring.synth import Chime
+from hooring.synth import Chime, synthesize_strike
 
 
 def test_render_length_and_seed() -> None:
@@ -47,6 +47,28 @@ def test_tail_survives_block_boundary() -> None:
 def test_zero_duration() -> None:
     audio = render(duration=0, seed=0, sample_rate=8000)
     assert audio.shape == (0, 2)
+
+
+def test_new_strike_cuts_previous() -> None:
+    sr = 8000
+    chime = Chime(2637.0, "glass", 0.0, 1.0)
+    spec = SceneSpec(sample_rate=sr, stereo=False, once=True, voices=1)
+    scene = Scene(spec, np.random.default_rng(0), chimes=[chime])
+    first = synthesize_strike(chime, 0.8, sr, np.random.default_rng(1), stereo=False)[:, None]
+    second = synthesize_strike(chime, 0.9, sr, np.random.default_rng(2), stereo=False)[:, None]
+    out = np.zeros((sr, 1), dtype=np.float64)
+    cut = 400
+    scene._mix(out, first, 0)
+    scene._retrigger(out, cut)
+    scene._mix(out, second, cut)
+    take = min(second.shape[0], sr - cut)
+    np.testing.assert_allclose(out[cut : cut + take], second[:take])
+    leftover = second[take:]
+    if leftover.shape[0] > 0:
+        np.testing.assert_allclose(scene._tail, leftover)
+    else:
+        assert scene._tail.shape[0] == 0
+    assert float(np.max(np.abs(out[cut - 8 : cut]))) < float(np.max(np.abs(first[:cut]))) * 0.5
 
 
 def test_intro_survives_short_blocks() -> None:

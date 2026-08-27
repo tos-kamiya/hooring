@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from hooring.synth import Chime, choose_chimes, synthesize_strike
+from hooring.synth import Chime, choose_chimes, strike_length, synthesize_strike
 
 
 def _centroid(samples: np.ndarray, sample_rate: int) -> float:
@@ -56,6 +56,29 @@ def test_glass_is_brighter_than_metal() -> None:
     )
     assert _centroid(glass, sr) > _centroid(metal, sr)
     assert _centroid(glass, sr) > 1500.0
+
+
+def test_strike_buffer_is_short() -> None:
+    sr = 22050
+    assert strike_length("glass", sr) / sr <= 4.0
+    assert strike_length("metal", sr) / sr <= 4.0
+
+
+def test_decay_varies_across_strikes() -> None:
+    chime = Chime(f0=2637.0, material="glass", pan=0.0, gain=1.0)
+    sr = 22050
+    lengths = []
+    late = []
+    for seed in range(24):
+        audio = synthesize_strike(chime, 0.8, sr, np.random.default_rng(seed), stereo=False)
+        lengths.append(len(audio))
+        start = int(1.1 * sr)
+        if len(audio) <= start:
+            late.append(0.0)
+            continue
+        late.append(float(np.sqrt(np.mean(audio[start:] ** 2))))
+    assert max(lengths) > min(lengths) * 1.15
+    assert max(late) > min(late) * 3.0
 
 
 def test_strike_decays() -> None:

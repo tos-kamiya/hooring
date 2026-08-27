@@ -14,27 +14,31 @@ import numpy as np
 Partials = Sequence[Tuple[float, float, float]]
 
 GLASS_PARTIALS: Partials = (
-    (1.00, 1.00, 1.35),
-    (2.32, 0.28, 0.62),
-    (3.91, 0.14, 0.32),
-    (5.18, 0.07, 0.20),
-    (7.05, 0.035, 0.12),
-    (9.40, 0.018, 0.08),
+    (1.00, 1.00, 0.62),
+    (2.18, 0.16, 0.22),
+    (3.55, 0.07, 0.11),
+    (4.90, 0.03, 0.07),
+    (6.80, 0.015, 0.04),
+    (9.10, 0.007, 0.025),
 )
 
 METAL_PARTIALS: Partials = (
-    (1.00, 1.00, 3.20),
-    (2.76, 0.52, 2.10),
-    (5.40, 0.24, 1.15),
-    (8.93, 0.12, 0.70),
-    (13.34, 0.06, 0.40),
-    (18.64, 0.025, 0.22),
+    (1.00, 1.00, 1.45),
+    (2.76, 0.52, 0.95),
+    (5.40, 0.24, 0.52),
+    (8.93, 0.12, 0.32),
+    (13.34, 0.06, 0.18),
+    (18.64, 0.025, 0.10),
 )
 
 GLASS_PITCHES = (2349.3, 2637.0, 2793.8, 3136.0, 3520.0, 3951.1, 4186.0)
 METAL_PITCHES = (880.0, 987.8, 1108.7, 1318.5, 1480.0, 1760.0)
 
 MATERIALS = ("glass", "metal", "mixed")
+
+# Per-strike ring length, relative to the partial decay times.
+DECAY_SCALE_MIN = 0.50
+DECAY_SCALE_MAX = 1.25
 
 
 @dataclass(frozen=True)
@@ -45,11 +49,13 @@ class Chime:
     gain: float
 
 
-def strike_length(material: str, sample_rate: int) -> int:
+def strike_length(material: str, sample_rate: int, decay_scale: float | None = None) -> int:
     """Samples needed for a strike to decay into silence."""
+    if decay_scale is None:
+        decay_scale = DECAY_SCALE_MAX
     partials = METAL_PARTIALS if material == "metal" else GLASS_PARTIALS
-    tau = max(p[2] for p in partials)
-    seconds = min(8.0, max(2.5, -tau * np.log(1e-4)))
+    tau = max(p[2] for p in partials) * float(decay_scale)
+    seconds = min(4.0, max(0.9, -tau * np.log(1e-3)))
     return int(sample_rate * seconds)
 
 
@@ -67,14 +73,19 @@ def synthesize_strike(
     strength = float(np.clip(strength, 0.05, 1.0))
     material = chime.material
     partials = METAL_PARTIALS if material == "metal" else GLASS_PARTIALS
-    n = strike_length(material, sample_rate)
+    decay_scale = float(rng.uniform(DECAY_SCALE_MIN, DECAY_SCALE_MAX))
+    n = strike_length(material, sample_rate, decay_scale)
     t = np.arange(n, dtype=np.float64) / float(sample_rate)
     y = np.zeros(n, dtype=np.float64)
 
     f0 = chime.f0 * rng.uniform(0.997, 1.003)
     # Harder hits pull in more high partials and a touch of extra inharmonicity.
-    bright = 0.55 + 0.65 * strength
-    stretch = 1.0 + 0.0015 * strength
+    if material == "glass":
+        bright = 0.28 + 0.40 * strength
+        stretch = 1.0 + 0.0006 * strength
+    else:
+        bright = 0.55 + 0.65 * strength
+        stretch = 1.0 + 0.0015 * strength
 
     for ratio, amp, tau in partials:
         freq = f0 * (ratio ** stretch) * rng.uniform(0.999, 1.001)
@@ -83,12 +94,13 @@ def synthesize_strike(
         phase = rng.uniform(0.0, 2.0 * np.pi)
         high = max(0.0, (ratio - 1.0) / 8.0)
         a = amp * (1.0 + bright * high)
-        tau_hit = tau * (0.88 + 0.12 * (1.0 - 0.5 * strength))
+        tau_hit = tau * decay_scale
         y += a * np.exp(-t / tau_hit) * np.sin(2.0 * np.pi * freq * t + phase)
 
     # Slow beating on the fundamental, like a thin glass wall.
+    beat_amp = 0.30 if material == "glass" else 0.22
     beat = rng.uniform(0.7, 2.2)
-    y += 0.22 * np.exp(-t / partials[0][2]) * np.sin(
+    y += beat_amp * np.exp(-t / (partials[0][2] * decay_scale)) * np.sin(
         2.0 * np.pi * (f0 + beat) * t + rng.uniform(0.0, 2.0 * np.pi)
     )
 
@@ -96,6 +108,9 @@ def synthesize_strike(
     y *= attack
 
     y += _clapper(t, n, sample_rate, f0, strength, material, rng)
+    fade_n = min(n, int(sample_rate * 0.05))
+    if fade_n > 1:
+        y[-fade_n:] *= np.linspace(1.0, 0.0, fade_n, dtype=np.float64)
     peak = np.max(np.abs(y))
     if peak > 0.0:
         y /= peak
@@ -115,7 +130,7 @@ def _clapper(
     rng: np.random.Generator,
 ) -> np.ndarray:
     """Short contact transient: glass ping vs metal tick."""
-    width = 0.010 if material == "glass" else 0.007
+    width = 0.012 if material == "glass" else 0.007
     burst_n = max(8, int(sample_rate * width * 3))
     burst_n = min(burst_n, n)
     tb = t[:burst_n]
@@ -124,12 +139,14 @@ def _clapper(
     if burst_n > 1:
         noise = np.concatenate([[noise[0]], np.diff(noise)])
     env = np.exp(-tb / (width * (0.6 + 0.4 * strength)))
-    noise *= env * (0.12 if material == "glass" else 0.18) * strength
+    noise *= env * (0.06 if material == "glass" else 0.18) * strength
 
     # Downward chirp into the ringing pitch.
-    f_start = min(sample_rate * 0.42, f0 * (3.2 if material == "glass" else 2.4))
+    f_start = min(sample_rate * 0.42, f0 * (2.6 if material == "glass" else 2.4))
     chirp_f = f_start + (f0 - f_start) * (1.0 - np.exp(-tb / 0.003))
-    chirp = env * 0.16 * strength * np.sin(2.0 * np.pi * np.cumsum(chirp_f) / sample_rate)
+    chirp = env * (0.09 if material == "glass" else 0.16) * strength * np.sin(
+        2.0 * np.pi * np.cumsum(chirp_f) / sample_rate
+    )
     out = np.zeros(n, dtype=np.float64)
     out[:burst_n] = noise + chirp
     return out
