@@ -47,6 +47,9 @@ hooring --material metal --wind gusty
 
 # WAV に書き出す（秒数省略時は 30 秒）
 hooring -o natsu.wav -d 20 --seed 7
+
+# 音量を半分に（1 がいまの最大）
+hooring --volume 0.5
 ```
 
 ### オプション
@@ -62,13 +65,14 @@ hooring -o natsu.wav -d 20 --seed 7
 | `--once` | 一打だけ鳴らして終わる |
 | `--mono` | モノラル出力 |
 | `--sample-rate HZ` | サンプリング周波数 |
+| `--volume GAIN` | 音量 0–1（1 がいまの最大、default 1） |
 
 Python から:
 
 ```python
 from hooring import render
 
-audio = render(duration=8, seed=1, wind="breeze", material="glass")
+audio = render(duration=8, seed=1, wind="breeze", material="glass", volume=0.5)
 # stereo: shape (n, 2), float64 in [-1, 1]
 ```
 

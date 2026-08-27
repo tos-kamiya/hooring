@@ -22,6 +22,7 @@ class SceneSpec:
     voices: int = 2
     material: str = "glass"
     once: bool = False
+    volume: float = 1.0
 
 
 class Scene:
@@ -30,6 +31,8 @@ class Scene:
             raise ValueError("wind must be breeze, moderate, or gusty")
         if spec.sample_rate < 8000:
             raise ValueError("sample_rate is too low")
+        if not 0.0 <= spec.volume <= 1.0:
+            raise ValueError("volume must be between 0 and 1")
         self.spec = spec
         self.rng = rng
         self.chimes: List[Chime] = list(chimes) if chimes is not None else choose_chimes(
@@ -107,6 +110,8 @@ class Scene:
         peak = np.max(np.abs(out))
         if peak > 0.98:
             out *= 0.98 / peak
+        if self.spec.volume != 1.0:
+            out *= self.spec.volume
         return out if self.spec.stereo else out[:, 0]
 
     def _consume_timed_hit(self, at: Optional[int], n: int) -> Optional[int]:
@@ -195,6 +200,7 @@ def render(
     sample_rate: int = 44100,
     stereo: bool = True,
     once: bool = False,
+    volume: float = 1.0,
 ) -> np.ndarray:
     """Render `duration` seconds of furin audio.
 
@@ -210,6 +216,7 @@ def render(
         voices=voices,
         material=material,
         once=once,
+        volume=volume,
     )
     scene = Scene(spec, rng)
     n_total = int(round(duration * sample_rate))

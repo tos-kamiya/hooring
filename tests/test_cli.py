@@ -53,6 +53,16 @@ def test_cli_writes_wav(tmp_path: Path) -> None:
         assert handle.getnframes() > 1000
 
 
+def test_cli_rejects_volume_above_max() -> None:
+    raised = False
+    try:
+        main(["--volume", "1.1", "--once", "-o", "x.wav"])
+    except SystemExit as exc:
+        raised = True
+        assert exc.code != 0
+    assert raised
+
+
 def test_cli_rejects_bad_voices() -> None:
     raised = False
     try:

@@ -64,6 +64,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="サンプリング周波数 (default: 44100)",
     )
     parser.add_argument("--mono", action="store_true", help="モノラルで出力する")
+    parser.add_argument(
+        "--volume",
+        type=float,
+        default=1.0,
+        metavar="GAIN",
+        help="音量 0–1。1 がいまの最大音量 (default: 1)",
+    )
     parser.add_argument("--version", action="version", version=f"hooring {__version__}")
     return parser
 
@@ -88,6 +95,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         parser.error("voices must be between 1 and 6")
     if args.sample_rate < 8000:
         parser.error("sample-rate must be at least 8000")
+    if not 0.0 <= args.volume <= 1.0:
+        parser.error("volume must be between 0 and 1")
     try:
         duration = _duration_for(args)
     except ValueError as exc:
@@ -102,6 +111,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         voices=args.voices,
         material=args.material,
         once=bool(args.once),
+        volume=float(args.volume),
     )
     scene = Scene(spec, rng)
 
@@ -112,7 +122,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
 
     print(
-        f"hooring  seed={seed}  wind={args.wind}  {args.material}×{args.voices}  (Ctrl+C で止める)",
+        f"hooring  seed={seed}  wind={args.wind}  {args.material}×{args.voices}  vol={args.volume:g}  (Ctrl+C で止める)",
         file=sys.stderr,
     )
     try:

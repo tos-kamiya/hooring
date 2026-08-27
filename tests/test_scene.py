@@ -22,6 +22,14 @@ def test_render_length_and_seed() -> None:
     assert np.max(np.abs(a)) > 0.05
 
 
+def test_volume_scales_from_current_max() -> None:
+    full = render(duration=1.5, seed=1, sample_rate=8000, stereo=False, once=True, volume=1.0)
+    half = render(duration=1.5, seed=1, sample_rate=8000, stereo=False, once=True, volume=0.5)
+    silent = render(duration=1.5, seed=1, sample_rate=8000, stereo=False, once=True, volume=0.0)
+    np.testing.assert_allclose(half, full * 0.5)
+    assert float(np.max(np.abs(silent))) == 0.0
+
+
 def test_mono_once_has_energy() -> None:
     audio = render(duration=2.0, seed=4, sample_rate=8000, stereo=False, once=True, material="metal")
     assert audio.ndim == 1
