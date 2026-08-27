@@ -80,7 +80,7 @@ def play_scene(
 ) -> None:
     commands = _player_commands(scene.spec.sample_rate, scene.channels)
     if not commands:
-        raise RuntimeError("再生できるコマンドがありません。aplay か ffplay をインストールしてください。")
+        raise RuntimeError("No audio player found. Install aplay or ffplay.")
 
     err: Optional[Exception] = None
     for cmd in commands:
@@ -93,7 +93,7 @@ def play_scene(
         except OSError as exc:
             err = exc
             continue
-    raise RuntimeError("音声の再生に失敗しました。") from err
+    raise RuntimeError("Failed to play audio.") from err
 
 
 def _stream(

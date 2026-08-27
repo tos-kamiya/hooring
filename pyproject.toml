@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "hooring"
 dynamic = ["version"]
-description = "風まかせに、涼しげな風鈴の音を鳴らす"
+description = "Play furin (Japanese wind chime) sounds driven by a wandering breeze."
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"

@@ -1,73 +1,73 @@
 # hooring
 
-風まかせに、涼しげな風鈴の音を鳴らします。
+Play cool-sounding furin (Japanese wind chime) tones, driven by a wandering breeze.
 
-ガラス（江戸風鈴）と金属（鉄風鈴）の音色を加算合成し、そよ風の強さに応じて不規則に打ちます。短冊が風を受けて舌を動かす、あの間をイメージしています。
+Glass (Edo furin) and metal (iron furin) timbres are additively synthesized and struck at irregular intervals, following the wind. The gaps are meant to feel like a tanzaku paper strip catching the air and moving the clapper.
 
-## インストール
+## Installation
 
-[uv](https://docs.astral.sh/uv/) で仮想環境と依存関係を揃えます。
+Set up the virtualenv and dependencies with [uv](https://docs.astral.sh/uv/):
 
 ```console
 uv sync
 uv run hooring
 ```
 
-テスト:
+Tests:
 
 ```console
 uv run pytest
 ```
 
-パッケージとして入れる場合:
+To install as a package:
 
 ```console
 uv pip install hooring
 ```
 
-再生には `aplay`（ALSA）か `ffplay`（ffmpeg）が必要です。WAV への書き出しだけなら不要です。
+Playback needs `aplay` (ALSA) or `ffplay` (ffmpeg). Writing a WAV file does not.
 
-## 使い方
+## Usage
 
 ```console
 hooring
 ```
 
-鳴り続けます。`Ctrl+C` で止めます。同じ風をもう一度聞くには、表示された `seed=` を `--seed` に渡してください。
+It keeps ringing. Stop with `Ctrl+C`. To hear the same breeze again, pass the printed `seed=` to `--seed`.
 
 ```console
-# 一打だけ
+# A single strike
 hooring --once
 
-# そよ風、風鈴は3つ、45秒
+# Light breeze, three furin, 45 seconds
 hooring -d 45 --wind breeze --voices 3
 
-# 金属の音色
+# Metal timbre
 hooring --material metal --wind gusty
 
-# WAV に書き出す（秒数省略時は 30 秒）
+# Write a WAV file (defaults to 30 seconds if duration is omitted)
 hooring -o natsu.wav -d 20 --seed 7
 
-# 音量を半分に（1 がいまの最大）
+# Half volume (1 is the current maximum)
 hooring --volume 0.5
 ```
 
-### オプション
+### Options
 
-| フラグ | 意味 |
+| Flag | Meaning |
 | --- | --- |
-| `-d`, `--duration SEC` | 再生または書き出し秒数。省略時は鳴り続ける |
-| `-o`, `--output FILE` | WAV へ書き出す（再生しない） |
-| `--seed N` | 乱数シード |
-| `--wind breeze\|moderate\|gusty` | 風の強さ |
-| `--voices N` | 風鈴の数（1–6、default 2） |
-| `--material glass\|metal\|mixed` | 音色 |
-| `--once` | 一打だけ鳴らして終わる |
-| `--mono` | モノラル出力 |
-| `--sample-rate HZ` | サンプリング周波数 |
-| `--volume GAIN` | 音量 0–1（1 がいまの最大、default 1） |
+| `-d`, `--duration SEC` | Seconds to play or write. Omit to keep ringing |
+| `-o`, `--output FILE` | Write a WAV file instead of playing |
+| `--seed N` | Random seed |
+| `--wind breeze\|moderate\|gusty` | Wind strength |
+| `--voices N` | Number of furin (1–6, default 2) |
+| `--material glass\|metal\|mixed` | Timbre |
+| `--once` | Play a single strike and exit |
+| `--mono` | Mono output |
+| `--sample-rate HZ` | Sample rate |
+| `--volume GAIN` | Volume 0–1 (1 is the current maximum, default 1) |
 
-Python から:
+From Python:
 
 ```python
 from hooring import render

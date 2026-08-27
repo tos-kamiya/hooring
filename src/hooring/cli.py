@@ -19,7 +19,7 @@ from hooring.wind import WIND_NAMES
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hooring",
-        description="風鈴の音を、風まかせに鳴らします。",
+        description="Play furin (Japanese wind chime) sounds driven by a wandering breeze.",
     )
     parser.add_argument(
         "-d",
@@ -27,49 +27,49 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         metavar="SEC",
-        help="再生（または書き出し）秒数。省略時は鳴り続けます",
+        help="seconds to play or write; omit to keep ringing",
     )
     parser.add_argument(
         "-o",
         "--output",
         default=None,
         metavar="FILE",
-        help="WAV ファイルへ書き出す（再生しない）",
+        help="write a WAV file instead of playing",
     )
-    parser.add_argument("--seed", type=int, default=None, help="乱数シード")
+    parser.add_argument("--seed", type=int, default=None, help="random seed")
     parser.add_argument(
         "--wind",
         choices=WIND_NAMES,
         default="moderate",
-        help="風の強さ (default: moderate)",
+        help="wind strength (default: moderate)",
     )
     parser.add_argument(
         "--voices",
         type=int,
         default=2,
-        help="風鈴の数 1–6 (default: 2)",
+        help="number of furin, 1–6 (default: 2)",
     )
     parser.add_argument(
         "--material",
         choices=MATERIALS,
         default="glass",
-        help="音色 (default: glass)",
+        help="timbre (default: glass)",
     )
-    parser.add_argument("--once", action="store_true", help="一打だけ鳴らして終わる")
+    parser.add_argument("--once", action="store_true", help="play a single strike and exit")
     parser.add_argument(
         "--sample-rate",
         type=int,
         default=44100,
         metavar="HZ",
-        help="サンプリング周波数 (default: 44100)",
+        help="sample rate (default: 44100)",
     )
-    parser.add_argument("--mono", action="store_true", help="モノラルで出力する")
+    parser.add_argument("--mono", action="store_true", help="output mono audio")
     parser.add_argument(
         "--volume",
         type=float,
         default=1.0,
         metavar="GAIN",
-        help="音量 0–1。1 がいまの最大音量 (default: 1)",
+        help="volume 0–1, where 1 is the current maximum (default: 1)",
     )
     parser.add_argument("--version", action="version", version=f"hooring {__version__}")
     return parser
@@ -122,7 +122,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
 
     print(
-        f"hooring  seed={seed}  wind={args.wind}  {args.material}×{args.voices}  vol={args.volume:g}  (Ctrl+C で止める)",
+        f"hooring  seed={seed}  wind={args.wind}  {args.material}x{args.voices}  vol={args.volume:g}  (Ctrl+C to stop)",
         file=sys.stderr,
     )
     try:
