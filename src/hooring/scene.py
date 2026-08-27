@@ -1,0 +1,208 @@
+# SPDX-FileCopyrightText: 2026-present Toshihiro Kamiya <kamiya@mbj.nifty.com>
+#
+# SPDX-License-Identifier: MIT
+"""Mix overlapping furin strikes under a wandering wind."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import List, Optional, Sequence
+
+import numpy as np
+
+from hooring.synth import Chime, choose_chimes, synthesize_strike
+from hooring.wind import PRESETS, Wind, WIND_NAMES
+
+
+@dataclass(frozen=True)
+class SceneSpec:
+    sample_rate: int = 44100
+    stereo: bool = True
+    wind: str = "moderate"
+    voices: int = 2
+    material: str = "glass"
+    once: bool = False
+
+
+class Scene:
+    def __init__(self, spec: SceneSpec, rng: np.random.Generator, chimes: Optional[Sequence[Chime]] = None) -> None:
+        if spec.wind not in WIND_NAMES:
+            raise ValueError("wind must be breeze, moderate, or gusty")
+        if spec.sample_rate < 8000:
+            raise ValueError("sample_rate is too low")
+        self.spec = spec
+        self.rng = rng
+        self.chimes: List[Chime] = list(chimes) if chimes is not None else choose_chimes(
+            spec.voices, spec.material, rng
+        )
+        if not self.chimes:
+            raise ValueError("at least one chime is required")
+        self.wind = Wind(PRESETS[spec.wind], rng)
+        self._t = 0
+        self._last_hit = np.full(len(self.chimes), -10**9, dtype=np.int64)
+        self._tail = np.zeros((0, 2 if spec.stereo else 1), dtype=np.float64)
+        self._once_at = None if not spec.once else int(spec.sample_rate * 0.06)
+        self._intro_at = (
+            None
+            if spec.once
+            else int(spec.sample_rate * float(rng.uniform(0.25, 0.9)))
+        )
+        self._pending: List[tuple[int, int, float]] = []
+
+    @property
+    def channels(self) -> int:
+        return 2 if self.spec.stereo else 1
+
+    def render_block(self, n_frames: int) -> np.ndarray:
+        if n_frames < 0:
+            raise ValueError("n_frames must be >= 0")
+        n = int(n_frames)
+        ch = self.channels
+        out = np.zeros((n, ch), dtype=np.float64)
+        if n == 0:
+            return out
+
+        if self._tail.shape[0] > 0:
+            k = min(n, self._tail.shape[0])
+            out[:k] += self._tail[:k]
+            self._tail = self._tail[k:]
+
+        events: List[tuple[int, int, float]] = []
+        still: List[tuple[int, int, float]] = []
+        for abs_t, index, strength in self._pending:
+            if abs_t < self._t + n:
+                events.append((max(0, abs_t - self._t), index, strength))
+            else:
+                still.append((abs_t, index, strength))
+        self._pending = still
+        if self.spec.once:
+            hit = self._consume_timed_hit(self._once_at, n)
+            if hit is not None:
+                events.append((hit, 0, float(self.rng.uniform(0.55, 0.9))))
+                self._once_at = None
+        else:
+            events.extend(self._schedule_wind(n))
+            if self._intro_at is not None:
+                hit = self._consume_timed_hit(self._intro_at, n)
+                if hit is not None:
+                    events.append((hit, 0, float(self.rng.uniform(0.5, 0.85))))
+                    self._last_hit[0] = self._t + hit
+                    self._intro_at = None
+
+        for offset, index, strength in events:
+            audio = synthesize_strike(
+                self.chimes[index],
+                strength,
+                self.spec.sample_rate,
+                self.rng,
+                stereo=self.spec.stereo,
+            )
+            if audio.ndim == 1:
+                audio = audio[:, None]
+            self._mix(out, audio, offset)
+
+        self._t += n
+        peak = np.max(np.abs(out))
+        if peak > 0.98:
+            out *= 0.98 / peak
+        return out if self.spec.stereo else out[:, 0]
+
+    def _consume_timed_hit(self, at: Optional[int], n: int) -> Optional[int]:
+        if at is None:
+            return None
+        if at < self._t:
+            return 0
+        offset = at - self._t
+        if offset >= n:
+            return None
+        return offset
+
+    def _schedule_wind(self, n: int) -> List[tuple[int, int, float]]:
+        events: List[tuple[int, int, float]] = []
+        sr = self.spec.sample_rate
+        hop = max(1, int(sr * 0.01))
+        min_gap = int(self.wind.preset.min_gap * sr)
+        dt = hop / float(sr)
+        start = ((self._t + hop - 1) // hop) * hop
+        for abs_t in range(start, self._t + n, hop):
+            offset = abs_t - self._t
+            self.wind.step(dt)
+            if self.rng.random() >= self.wind.strike_probability(dt):
+                continue
+            eligible = [i for i, last in enumerate(self._last_hit) if abs_t - last >= min_gap]
+            if not eligible:
+                continue
+            index = int(eligible[int(self.rng.integers(0, len(eligible)))])
+            strength = float(np.clip(0.25 + 0.75 * self.wind.speed * self.rng.uniform(0.7, 1.15), 0.2, 1.0))
+            events.append((offset, index, strength))
+            self._last_hit[index] = abs_t
+            # Gust: the paper strip can bounce the clapper once or twice more.
+            if self.wind.speed > 0.7 and self.rng.random() < 0.45:
+                bounce_abs = abs_t + int(sr * float(self.rng.uniform(0.08, 0.22)))
+                bounce_strength = strength * float(self.rng.uniform(0.45, 0.75))
+                self._last_hit[index] = bounce_abs
+                if bounce_abs < self._t + n:
+                    events.append((bounce_abs - self._t, index, bounce_strength))
+                else:
+                    self._pending.append((bounce_abs, index, bounce_strength))
+        return events
+
+    def _mix(self, out: np.ndarray, audio: np.ndarray, offset: int) -> None:
+        n = out.shape[0]
+        if offset >= n:
+            extra = audio
+        else:
+            take = min(audio.shape[0], n - offset)
+            out[offset : offset + take] += audio[:take]
+            extra = audio[take:]
+        if extra.shape[0] == 0:
+            return
+        if self._tail.shape[0] == 0:
+            self._tail = extra.copy()
+            return
+        if self._tail.shape[0] < extra.shape[0]:
+            pad = np.zeros((extra.shape[0] - self._tail.shape[0], extra.shape[1]), dtype=np.float64)
+            self._tail = np.vstack((self._tail, pad))
+        self._tail[: extra.shape[0]] += extra
+
+
+def render(
+    duration: float,
+    *,
+    seed: Optional[int] = None,
+    wind: str = "moderate",
+    voices: int = 2,
+    material: str = "glass",
+    sample_rate: int = 44100,
+    stereo: bool = True,
+    once: bool = False,
+) -> np.ndarray:
+    """Render `duration` seconds of furin audio.
+
+    Returns a 1-D array (mono) or an (n, 2) array (stereo) of float64 samples.
+    """
+    if duration < 0:
+        raise ValueError("duration must be >= 0")
+    rng = np.random.default_rng(seed)
+    spec = SceneSpec(
+        sample_rate=sample_rate,
+        stereo=stereo,
+        wind=wind,
+        voices=voices,
+        material=material,
+        once=once,
+    )
+    scene = Scene(spec, rng)
+    n_total = int(round(duration * sample_rate))
+    ch = scene.channels
+    out = np.zeros((n_total, ch), dtype=np.float64)
+    pos = 0
+    block = sample_rate
+    while pos < n_total:
+        n = min(block, n_total - pos)
+        chunk = scene.render_block(n)
+        if chunk.ndim == 1:
+            chunk = chunk[:, None]
+        out[pos : pos + n] = chunk
+        pos += n
+    return out if stereo else out[:, 0]
