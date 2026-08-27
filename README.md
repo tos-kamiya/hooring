@@ -76,6 +76,10 @@ audio = render(duration=8, seed=1, wind="breeze", material="glass", volume=0.5)
 # stereo: shape (n, 2), float64 in [-1, 1]
 ```
 
+## Release notes
+
+→ [Release Notes](release-notes.md)
+
 ## License
 
 `hooring` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
