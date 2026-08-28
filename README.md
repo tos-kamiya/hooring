@@ -2,7 +2,7 @@
 
 Play cool-sounding furin (Japanese wind chime) tones, driven by a wandering breeze.
 
-Glass (Edo furin) and metal (iron furin) timbres are additively synthesized and struck at irregular intervals, following the wind. The gaps are meant to feel like a tanzaku paper strip catching the air and moving the clapper.
+Glass (Edo furin) and metal (iron furin) timbres are additively synthesized and struck at irregular intervals, following the wind. Strike loudness and spacing wander with 1/f fluctuation, like a tanzaku paper strip catching the air and moving the clapper.
 
 ## Installation
 

@@ -79,6 +79,18 @@ def test_new_strike_cuts_previous() -> None:
     assert float(np.max(np.abs(out[cut - 8 : cut]))) < float(np.max(np.abs(first[:cut]))) * 0.5
 
 
+def test_repositions_after_interval() -> None:
+    spec = SceneSpec(sample_rate=8000, stereo=True, voices=3, wind="breeze", reposition_every=0.05)
+    scene = Scene(spec, np.random.default_rng(9))
+    before = [(c.f0, c.material, c.pan, c.gain) for c in scene.chimes]
+    scene.render_block(int(0.05 * spec.sample_rate))
+    assert [(c.f0, c.material, c.pan, c.gain) for c in scene.chimes] == before
+    scene.render_block(1)
+    after = [(c.f0, c.material, c.pan, c.gain) for c in scene.chimes]
+    assert len(after) == len(before)
+    assert after != before
+
+
 def test_intro_survives_short_blocks() -> None:
     spec = SceneSpec(sample_rate=8000, stereo=False, once=False, voices=1, wind="breeze")
     scene = Scene(spec, np.random.default_rng(3), chimes=[Chime(2637.0, "glass", 0.0, 1.0)])

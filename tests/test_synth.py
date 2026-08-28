@@ -5,7 +5,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from hooring.synth import Chime, choose_chimes, strike_length, synthesize_strike
+from hooring.synth import (
+    GLASS_PITCHES,
+    METAL_PITCHES,
+    Chime,
+    choose_chimes,
+    reposition_chimes,
+    strike_length,
+    synthesize_strike,
+)
 
 
 def _centroid(samples: np.ndarray, sample_rate: int) -> float:
@@ -101,6 +109,35 @@ def test_choose_chimes_mixed_and_count() -> None:
     assert len(chimes) == 4
     kinds = {c.material for c in chimes}
     assert kinds == {"glass", "metal"}
+
+
+def test_choose_chimes_drops_low_pitches() -> None:
+    rng = np.random.default_rng(4)
+    glass = choose_chimes(len(GLASS_PITCHES), "glass", rng)
+    metal = choose_chimes(len(METAL_PITCHES), "metal", rng)
+    assert {c.f0 for c in glass} == set(GLASS_PITCHES)
+    assert {c.f0 for c in metal} == set(METAL_PITCHES)
+    assert 2349.3 not in GLASS_PITCHES
+    assert 880.0 not in METAL_PITCHES
+    assert 987.8 not in METAL_PITCHES
+    assert max(GLASS_PITCHES) <= 4186.0
+    assert max(METAL_PITCHES) <= 1760.0
+
+
+def test_reposition_changes_timbre() -> None:
+    rng = np.random.default_rng(6)
+    original = choose_chimes(4, "mixed", rng)
+    moved = reposition_chimes(original, "mixed", rng)
+    assert len(moved) == len(original)
+    assert [(c.f0, c.material, c.pan, c.gain) for c in moved] != [
+        (c.f0, c.material, c.pan, c.gain) for c in original
+    ]
+    layouts = {tuple(c.material for c in original)}
+    chimes = original
+    for _ in range(24):
+        chimes = reposition_chimes(chimes, "mixed", rng)
+        layouts.add(tuple(c.material for c in chimes))
+    assert len(layouts) > 1
 
 
 def test_pan_leans_left() -> None:

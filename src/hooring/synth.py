@@ -14,25 +14,27 @@ import numpy as np
 Partials = Sequence[Tuple[float, float, float]]
 
 GLASS_PARTIALS: Partials = (
-    (1.00, 1.00, 0.62),
-    (2.18, 0.16, 0.22),
-    (3.55, 0.07, 0.11),
-    (4.90, 0.03, 0.07),
-    (6.80, 0.015, 0.04),
-    (9.10, 0.007, 0.025),
+    (1.00, 1.00, 0.31),
+    (2.18, 0.16, 0.11),
+    (3.55, 0.07, 0.055),
+    (4.90, 0.03, 0.035),
+    (6.80, 0.015, 0.02),
+    (9.10, 0.007, 0.0125),
 )
 
 METAL_PARTIALS: Partials = (
-    (1.00, 1.00, 1.45),
-    (2.76, 0.52, 0.95),
-    (5.40, 0.24, 0.52),
-    (8.93, 0.12, 0.32),
-    (13.34, 0.06, 0.18),
-    (18.64, 0.025, 0.10),
+    (1.00, 1.00, 0.725),
+    (2.76, 0.52, 0.475),
+    (5.40, 0.24, 0.26),
+    (8.93, 0.12, 0.16),
+    (13.34, 0.06, 0.09),
+    (18.64, 0.025, 0.05),
 )
 
-GLASS_PITCHES = (2349.3, 2637.0, 2793.8, 3136.0, 3520.0, 3951.1, 4186.0)
-METAL_PITCHES = (880.0, 987.8, 1108.7, 1318.5, 1480.0, 1760.0)
+# E7 F7 G7 A7 B7 C8 — original top, lowest glass (D7) dropped.
+GLASS_PITCHES = (2637.0, 2793.8, 3136.0, 3520.0, 3951.1, 4186.0)
+# C#6 E6 F#6 A6 — original top, lowest metal (A5 B5) dropped.
+METAL_PITCHES = (1108.7, 1318.5, 1480.0, 1760.0)
 
 MATERIALS = ("glass", "metal", "mixed")
 
@@ -159,6 +161,22 @@ def _pan(mono: np.ndarray, pan: float) -> np.ndarray:
     return np.column_stack((left, right))
 
 
+def place_chimes(voices: int, rng: np.random.Generator) -> List[Tuple[float, float]]:
+    """Stereo slots as (pan, gain), left to right. Nearer slot is a bit louder."""
+    if voices < 1:
+        raise ValueError("voices must be at least 1")
+    if voices == 1:
+        return [(float(rng.uniform(-0.15, 0.15)), 1.0)]
+    slots: List[Tuple[float, float]] = []
+    for i in range(voices):
+        pan = float(np.clip(-0.45 + 0.9 * i / (voices - 1) + rng.uniform(-0.08, 0.08), -0.7, 0.7))
+        gain = float(0.55 + 0.45 * rng.random())
+        if i == 0:
+            gain = max(gain, 0.85)
+        slots.append((pan, gain))
+    return slots
+
+
 def choose_chimes(
     voices: int,
     material: str,
@@ -169,27 +187,39 @@ def choose_chimes(
     if material not in MATERIALS:
         raise ValueError("material must be glass, metal, or mixed")
 
+    if material == "mixed":
+        kinds = ["glass" if (i % 2 == 0) else "metal" for i in range(voices)]
+        rng.shuffle(kinds)
+    else:
+        kinds = [material] * voices
+
     chimes: List[Chime] = []
     glass_pool = list(GLASS_PITCHES)
     metal_pool = list(METAL_PITCHES)
     rng.shuffle(glass_pool)
     rng.shuffle(metal_pool)
+    placements = place_chimes(voices, rng)
+    glass_i = 0
+    metal_i = 0
 
-    for i in range(voices):
-        if material == "mixed":
-            kind = "glass" if (i % 2 == 0) else "metal"
+    for i, kind in enumerate(kinds):
+        if kind == "glass":
+            f0 = glass_pool[glass_i % len(glass_pool)]
+            glass_i += 1
         else:
-            kind = material
-        pool = glass_pool if kind == "glass" else metal_pool
-        f0 = pool[i % len(pool)]
-        # Spread a little, nearer chime slightly louder and less panned.
-        if voices == 1:
-            pan = float(rng.uniform(-0.15, 0.15))
-            gain = 1.0
-        else:
-            pan = float(np.clip(-0.45 + 0.9 * i / (voices - 1) + rng.uniform(-0.08, 0.08), -0.7, 0.7))
-            gain = float(0.55 + 0.45 * rng.random())
-            if i == 0:
-                gain = max(gain, 0.85)
+            f0 = metal_pool[metal_i % len(metal_pool)]
+            metal_i += 1
+        pan, gain = placements[i]
         chimes.append(Chime(f0=f0, material=kind, pan=pan, gain=gain))
     return chimes
+
+
+def reposition_chimes(
+    chimes: Sequence[Chime],
+    material: str,
+    rng: np.random.Generator,
+) -> List[Chime]:
+    """Pick a new hanging: pitches, glass/metal, and stereo slots."""
+    if not chimes:
+        return []
+    return choose_chimes(len(chimes), material, rng)
