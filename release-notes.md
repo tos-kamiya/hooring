@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.1.1 - 2026-08-28
+
+- Rearrange furin every hour of playback: new stereo placement, pitches, and
+  glass/metal mix (within `--material`).
+- Drop the lowest glass and metal pitches, without raising the top of the set.
+- Vary strike loudness and spacing with 1/f fluctuation, at about one
+  strike per three of the previous rate.
+- Shorten ring decay to about half the previous length.
+
 ## 0.1.0 - 2026-08-28
 
 - Add a CLI that synthesizes furin (Japanese wind chime) strikes and plays
