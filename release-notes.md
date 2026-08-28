@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.2 - 2026-08-29
+
 - Require Python 3.10 or newer.
 - Document installing with pipx from the GitHub URL; keep uv for
   development.
