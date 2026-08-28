@@ -1,4 +1,4 @@
-# hooring
+# hooring 🎐
 
 Play cool-sounding furin (Japanese wind chime) tones, driven by a wandering breeze.
 
@@ -6,7 +6,19 @@ Glass (Edo furin) and metal (iron furin) timbres are additively synthesized and 
 
 ## Installation
 
-Set up the virtualenv and dependencies with [uv](https://docs.astral.sh/uv/):
+Install with [pipx](https://pipx.pypa.io/) from GitHub:
+
+```console
+pipx install git+https://github.com/tos-kamiya/hooring.git
+```
+
+That puts `hooring` on your `PATH`. Upgrade later with `pipx upgrade hooring`.
+
+Playback needs `aplay` (ALSA) or `ffplay` (ffmpeg). Writing a WAV file does not.
+
+### Development
+
+Clone the repository and set up the virtualenv with [uv](https://docs.astral.sh/uv/):
 
 ```console
 uv sync
@@ -19,13 +31,6 @@ Tests:
 uv run pytest
 ```
 
-To install as a package:
-
-```console
-uv pip install hooring
-```
-
-Playback needs `aplay` (ALSA) or `ffplay` (ffmpeg). Writing a WAV file does not.
 
 ## Usage
 

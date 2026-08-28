@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Document installing with pipx from the GitHub URL; keep uv for
+  development.
+
 ## 0.1.1 - 2026-08-28
 
 - Rearrange furin every hour of playback: new stereo placement, pitches, and
