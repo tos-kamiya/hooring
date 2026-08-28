@@ -1,5 +1,7 @@
 # hooring 🎐
 
+[English](README.md) · [日本語](README_ja-JP.md)
+
 Play cool-sounding furin (Japanese wind chime) tones, driven by a wandering breeze.
 
 Glass (Edo furin) and metal (iron furin) timbres are additively synthesized and struck at irregular intervals, following the wind. Strike loudness and spacing wander with 1/f fluctuation, like a tanzaku paper strip catching the air and moving the clapper.

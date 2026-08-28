@@ -4,6 +4,7 @@
 
 - Document installing with pipx from the GitHub URL; keep uv for
   development.
+- Add a Japanese README at `README_ja-JP.md`.
 
 ## 0.1.1 - 2026-08-28
 
