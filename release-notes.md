@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Require Python 3.10 or newer.
 - Document installing with pipx from the GitHub URL; keep uv for
   development.
 - Add a Japanese README at `README_ja-JP.md`.
