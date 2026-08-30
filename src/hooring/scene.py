@@ -15,6 +15,7 @@ from hooring.wind import PRESETS, Wind, WIND_NAMES
 
 # Playback time between stereo rearrangements.
 REPOSITION_EVERY_S = 3600.0
+CONTINUATION_THRESHOLD_S = 0.3
 
 
 @dataclass(frozen=True)
@@ -53,6 +54,8 @@ class Scene:
         else:
             self._next_hit = int(spec.sample_rate * float(rng.uniform(0.25, 0.9)))
         self._pending: List[tuple[int, int, float]] = []
+        self._last_strike: Optional[int] = None
+        self._in_continuation = False
         interval = spec.reposition_every
         self._reposition_every = None if interval <= 0.0 else int(spec.sample_rate * interval)
         self._next_reposition = self._reposition_every
@@ -135,19 +138,18 @@ class Scene:
             offset = max(0, abs_t - self._t)
             index = int(eligible[int(self.rng.integers(0, len(eligible)))])
             strength = self.wind.next_strength()
+            if self._in_continuation:
+                strength *= float(self.rng.uniform(0.45, 0.75))
             events.append((offset, index, strength))
             self._last_hit[index] = abs_t
+            self._in_continuation = (
+                self._last_strike is not None
+                and abs_t - self._last_strike < int(self.spec.sample_rate * CONTINUATION_THRESHOLD_S)
+            )
+            self._last_strike = abs_t
             if self.spec.once:
                 self._next_hit = None
                 break
-            if strength >= self.wind.preset.bounce_at and self.rng.random() < 0.45:
-                bounce_abs = abs_t + int(sr * float(self.rng.uniform(0.08, 0.22)))
-                bounce_strength = strength * float(self.rng.uniform(0.45, 0.75))
-                self._last_hit[index] = bounce_abs
-                if bounce_abs < end:
-                    events.append((bounce_abs - self._t, index, bounce_strength))
-                else:
-                    self._pending.append((bounce_abs, index, bounce_strength))
             gap = self.wind.next_interval()
             self._next_hit = abs_t + max(1, int(round(gap * sr)))
         return events

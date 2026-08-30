@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Allow wind-driven strike intervals below one second, so sustained gusts can
+  produce naturally clustered furin strikes. Interval fluctuations are
+  generated in batches to preserve longer 1/f-shaped runs, with intervals
+  reaching about 0.1 seconds at the short end. Strikes less than 0.3 seconds
+  apart are softened as part of the same continuous ringing sequence.
+
 ## 0.1.2 - 2026-08-29
 
 - Require Python 3.10 or newer.
