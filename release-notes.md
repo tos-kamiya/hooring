@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.4 - 2026-08-30
+
 - Reduce the probability of unnaturally long runs of very short strikes by
   reshaping the interval distribution while preserving its 1/f fluctuation.
 
