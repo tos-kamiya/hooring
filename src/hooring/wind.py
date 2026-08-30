@@ -12,6 +12,7 @@ import numpy as np
 WIND_NAMES = ("breeze", "moderate", "gusty")
 N_OCTAVES = 8
 INTERVAL_BATCH_SIZE = 100
+INTERVAL_DISTRIBUTION_EXPONENT = 4.0
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,10 @@ class Wind:
         values = np.array(
             [self._interval.sample() for _ in range(INTERVAL_BATCH_SIZE)],
             dtype=np.float64,
+        )
+        negative = values < 0.0
+        values[negative] = -np.power(
+            np.abs(values[negative]), INTERVAL_DISTRIBUTION_EXPONENT
         )
         mean = self.preset.mean_gap
         low_side = mean * np.power(mean / self.preset.min_gap, values)

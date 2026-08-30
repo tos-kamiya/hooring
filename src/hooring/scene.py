@@ -138,14 +138,15 @@ class Scene:
             offset = max(0, abs_t - self._t)
             index = int(eligible[int(self.rng.integers(0, len(eligible)))])
             strength = self.wind.next_strength()
+            is_continuation = (
+                self._last_strike is not None
+                and abs_t - self._last_strike < int(self.spec.sample_rate * CONTINUATION_THRESHOLD_S)
+            )
             if self._in_continuation:
                 strength *= float(self.rng.uniform(0.45, 0.75))
             events.append((offset, index, strength))
             self._last_hit[index] = abs_t
-            self._in_continuation = (
-                self._last_strike is not None
-                and abs_t - self._last_strike < int(self.spec.sample_rate * CONTINUATION_THRESHOLD_S)
-            )
+            self._in_continuation = is_continuation
             self._last_strike = abs_t
             if self.spec.once:
                 self._next_hit = None
