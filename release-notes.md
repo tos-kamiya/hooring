@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.3 - 2026-08-30
+
 - Allow wind-driven strike intervals below one second, so sustained gusts can
   produce naturally clustered furin strikes. Interval fluctuations are
   generated in batches to preserve longer 1/f-shaped runs, with intervals
