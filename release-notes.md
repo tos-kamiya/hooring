@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-09-01
+
 - Brighten the glass furin timbre by strengthening its higher partials and
   short attack.
 
