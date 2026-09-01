@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.6 - 2026-09-01
+
+- Install the command-line application from PyPI with `pipx install hooring`.
+- Install `hooring` with `pip install hooring` when using it as a Python library.
+
 ## 0.1.5 - 2026-09-01
 
 - Brighten the glass furin timbre by strengthening its higher partials and

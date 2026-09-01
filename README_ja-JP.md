@@ -8,13 +8,19 @@
 
 ## インストール
 
-GitHub から [pipx](https://pipx.pypa.io/) でインストールします。
+PyPI から [pipx](https://pipx.pypa.io/) でインストールします。
 
 ```console
-pipx install git+https://github.com/tos-kamiya/hooring.git
+pipx install hooring
 ```
 
 これで `hooring` が `PATH` に入ります。更新は `pipx upgrade hooring` です。
+
+`hooring` を Python ライブラリとして使う場合は、pip でインストールします。
+
+```console
+pip install hooring
+```
 
 再生には `aplay`（ALSA）または `ffplay`（ffmpeg）が必要です。WAV ファイルの書き出しには不要です。
 

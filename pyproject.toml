@@ -16,6 +16,7 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Console",
+  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -32,12 +33,25 @@ dependencies = [
 hooring = "hooring.cli:main"
 
 [project.urls]
-Documentation = "https://github.com/Toshihiro Kamiya/hooring#readme"
-Issues = "https://github.com/Toshihiro Kamiya/hooring/issues"
-Source = "https://github.com/Toshihiro Kamiya/hooring"
+Homepage = "https://github.com/tos-kamiya/hooring"
+Documentation = "https://github.com/tos-kamiya/hooring#readme"
+Issues = "https://github.com/tos-kamiya/hooring/issues"
+Source = "https://github.com/tos-kamiya/hooring"
 
 [tool.hatch.version]
 path = "src/hooring/__about__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/README.md",
+  "/README_ja-JP.md",
+  "/release-notes.md",
+  "/LICENSE.txt",
+  "/pyproject.toml",
+  "/uv.lock",
+]
 
 [dependency-groups]
 dev = [

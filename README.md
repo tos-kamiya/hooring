@@ -8,13 +8,19 @@ Glass (Edo furin) and metal (iron furin) timbres are additively synthesized and 
 
 ## Installation
 
-Install with [pipx](https://pipx.pypa.io/) from GitHub:
+Install from PyPI with [pipx](https://pipx.pypa.io/):
 
 ```console
-pipx install git+https://github.com/tos-kamiya/hooring.git
+pipx install hooring
 ```
 
 That puts `hooring` on your `PATH`. Upgrade later with `pipx upgrade hooring`.
+
+To use `hooring` as a Python library, install it with pip:
+
+```console
+pip install hooring
+```
 
 Playback needs `aplay` (ALSA) or `ffplay` (ffmpeg). Writing a WAV file does not.
 
