@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Brighten the glass furin timbre by strengthening its higher partials and
+  short attack.
+
 ## 0.1.4 - 2026-08-30
 
 - Reduce the probability of unnaturally long runs of very short strikes by

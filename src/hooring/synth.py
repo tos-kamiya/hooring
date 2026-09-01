@@ -15,11 +15,11 @@ Partials = Sequence[Tuple[float, float, float]]
 
 GLASS_PARTIALS: Partials = (
     (1.00, 1.00, 0.31),
-    (2.18, 0.16, 0.11),
-    (3.55, 0.07, 0.055),
-    (4.90, 0.03, 0.035),
-    (6.80, 0.015, 0.02),
-    (9.10, 0.007, 0.0125),
+    (2.18, 0.22, 0.11),
+    (3.55, 0.12, 0.055),
+    (4.90, 0.06, 0.035),
+    (6.80, 0.03, 0.02),
+    (9.10, 0.014, 0.0125),
 )
 
 METAL_PARTIALS: Partials = (
@@ -141,12 +141,12 @@ def _clapper(
     if burst_n > 1:
         noise = np.concatenate([[noise[0]], np.diff(noise)])
     env = np.exp(-tb / (width * (0.6 + 0.4 * strength)))
-    noise *= env * (0.06 if material == "glass" else 0.18) * strength
+    noise *= env * (0.11 if material == "glass" else 0.18) * strength
 
     # Downward chirp into the ringing pitch.
     f_start = min(sample_rate * 0.42, f0 * (2.6 if material == "glass" else 2.4))
     chirp_f = f_start + (f0 - f_start) * (1.0 - np.exp(-tb / 0.003))
-    chirp = env * (0.09 if material == "glass" else 0.16) * strength * np.sin(
+    chirp = env * (0.14 if material == "glass" else 0.16) * strength * np.sin(
         2.0 * np.pi * np.cumsum(chirp_f) / sample_rate
     )
     out = np.zeros(n, dtype=np.float64)
